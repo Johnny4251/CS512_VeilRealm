@@ -1,0 +1,34 @@
+name: Notify Discord on PR events
+
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_USER="${{ github.event.pull_request.user.login }}"
+          PR_HEAD="${{ github.event.pull_request.head.ref }}"
+          PR_HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          PR_BASE="${{ github.event.pull_request.base.ref }}"
+          PR_BASE_REPO="${{ github.event.pull_request.base.repo.full_name }}"
+
+          # Create multiline message
+          MESSAGE=$(printf "Pull Request by %s\nBranch: %s:%s → %s:%s\nTitle: %s\nLink: %s" \
+            "$PR_USER" "$PR_HEAD_REPO" "$PR_HEAD" "$PR_BASE_REPO" "$PR_BASE" "$PR_TITLE" "$PR_URL")
+
+          # Create JSON payload
+          JSON_PAYLOAD=$(jq -n --arg content "$MESSAGE" '{content: $content}')
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" \
+               -X POST "$DISCORD_WEBHOOK" \
+               -d "$JSON_PAYLOAD"

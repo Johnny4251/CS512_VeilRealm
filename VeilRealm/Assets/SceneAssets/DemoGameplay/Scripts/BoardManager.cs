@@ -1,14 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
+public struct MoveOptions
+{
+    public List<Vector2Int> freeSquares;
+    public List<Vector2Int> enemySquares;
+}
+
 public class BoardManager : MonoBehaviour
 {
     private GameObject[,] grid;
     [SerializeField] private int gridSizeRows = 10;
     [SerializeField] private int gridSizeCols = 10;
 
+
+    [SerializeField] public bool redMove = true;
+    [SerializeField] public bool blueMove = false;
+
     [Header("Predefined Obstacles")]
-    [SerializeField] private Vector2Int[] walls =
+    [SerializeField]
+    private Vector2Int[] walls =
     {
         new Vector2Int(6, 5),
         new Vector2Int(6, 4),
@@ -46,7 +58,7 @@ public class BoardManager : MonoBehaviour
         x >= 0 && x < gridSizeCols && y >= 0 && y < gridSizeRows;
     private bool IsWall(int x, int y) =>
         wallSet.Contains(new Vector2Int(x, y));
-        
+
     private bool IsFree(int x, int y)
     {
         if (!InBounds(x, y))
@@ -77,11 +89,54 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    public List<Vector2Int> GetPossibleMoves(int x, int y)
+    public GameObject GetPieceAt(int x, int y)
     {
-        var moves = new List<Vector2Int>(4);
-        GetPossibleMovesHelper(x, y, moves);
-        return moves;
+        if (!InBounds(x, y)) return null;
+        return grid[x, y];
+    }
+
+    public MoveOptions GetPossibleMoves(int x, int y, Team team)
+    {
+        MoveOptions result = new MoveOptions
+        {
+            freeSquares = new List<Vector2Int>(),
+            enemySquares = new List<Vector2Int>()
+        };
+
+        if (team == Team.BLUE && !blueMove)
+        {
+            return result;
+        } 
+
+        if(team == Team.RED && !redMove)
+        {
+            return result;
+        } 
+
+        foreach (var d in kFourDirs)
+        {
+            int nx = x + d.x;
+            int ny = y + d.y;
+
+            if (!InBounds(nx, ny) || IsWall(nx, ny))
+                continue;
+
+            var occupant = grid[nx, ny];
+            if (occupant == null)
+            {
+                result.freeSquares.Add(new Vector2Int(nx, ny));
+            }
+            else
+            {
+                var otherPiece = occupant.GetComponent<PieceController>();
+                if (otherPiece != null && otherPiece.team != team)
+                {
+                    result.enemySquares.Add(new Vector2Int(nx, ny));
+                }
+            }
+        }
+
+        return result;
     }
 
     public bool TryMovePiece(PieceController piece, int fromX, int fromY, int toX, int toY)
@@ -92,6 +147,24 @@ public class BoardManager : MonoBehaviour
         if (!InBounds(fromX, fromY) || IsWall(fromX, fromY))
             return false;
 
+        if (piece.team == Team.BLUE && !blueMove)
+        {
+            return false;
+        } else if(piece.team == Team.BLUE && blueMove)
+        {
+            blueMove = false;
+            redMove = true;
+        }
+
+        if(piece.team == Team.RED && !redMove)
+        {
+            return false;
+        } else if(piece.team == Team.RED && redMove)
+        {
+            blueMove = true;
+            redMove = false;
+        }
+
         if (grid[fromX, fromY] == null)
             grid[fromX, fromY] = piece.gameObject;
 
@@ -101,7 +174,7 @@ public class BoardManager : MonoBehaviour
         Debug.Log($"{piece.name} moved {fromX},{fromY} -> {toX},{toY}");
         return true;
     }
-    
+
     public void RegisterPiece(PieceController piece, int x, int y)
     {
         if (!InBounds(x, y))
@@ -111,4 +184,98 @@ public class BoardManager : MonoBehaviour
         }
         grid[x, y] = piece.gameObject;
     }
+
+    public bool AttackPiece(PieceController attacker, int fromX, int fromY, int toX, int toY)
+    {
+        if (!InBounds(toX, toY))
+            return false;
+        
+        if (attacker.team == Team.BLUE && !blueMove)
+        {
+            return false;
+        } else if(attacker.team == Team.BLUE && blueMove)
+        {
+            blueMove = false;
+            redMove = true;
+        }
+
+        if(attacker.team == Team.RED && !redMove)
+        {
+            return false;
+        } else if(attacker.team == Team.RED && redMove)
+        {
+            blueMove = true;
+            redMove = false;
+        }
+
+        var targetObj = grid[toX, toY];
+        if (targetObj == null)
+            return false;
+
+        var defender = targetObj.GetComponent<PieceController>();
+        if (defender == null)
+            return false;
+
+        bool attackerWins = false;
+        bool bothDie = false;
+
+        // Bomb logic
+        if (defender.pieceClass == PieceClass.BOMB)
+        {
+            attackerWins = (attacker.pieceClass == PieceClass.MINER);
+            if (!attackerWins)
+                bothDie = false; 
+        }
+        else if (attacker.pieceClass == PieceClass.SPY && defender.pieceClass == PieceClass.MARSHAL)
+        {
+            attackerWins = true;
+        }
+        else
+        {
+            int atk = (int)attacker.pieceClass;
+            int def = (int)defender.pieceClass;
+
+            if (atk > def)
+                attackerWins = true;
+            else if (atk == def)
+                bothDie = true;
+            else
+                attackerWins = false;
+        }
+
+        if (bothDie)
+        {
+            Destroy(attacker.gameObject);
+            Destroy(defender.gameObject);
+            grid[fromX, fromY] = null;
+            grid[toX, toY] = null;
+            Debug.Log($"{attacker.name} and {defender.name} both died!");
+            return true;
+        }
+
+        if (attackerWins)
+        {
+            Destroy(defender.gameObject);
+            grid[toX, toY] = attacker.gameObject;
+            grid[fromX, fromY] = null;
+            Debug.Log($"{attacker.name} defeated {defender.name}!");
+            return true;
+        }
+        else
+        {
+            Destroy(attacker.gameObject);
+            grid[fromX, fromY] = null;
+            Debug.Log($"{defender.name} defeated {attacker.name}!");
+            return true;
+        }
+    }
+
+
+    /*
+    void Update()
+    {
+        Debug.Log(grid[0, 0].GetComponent<PieceController>().team);
+        Debug.Log(grid[0, 0].GetComponent<PieceController>().pieceClass);
+    }
+    */
 }

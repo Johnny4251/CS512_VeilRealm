@@ -10,7 +10,6 @@ public class SpotlightTarget : MonoBehaviour
         this.owner = owner;
         this.target = target;
 
-        // Ensure it’s clickable (2D). Use BoxCollider if your project is 3D.
         if (GetComponent<Collider2D>() == null)
             gameObject.AddComponent<BoxCollider2D>();
     }
