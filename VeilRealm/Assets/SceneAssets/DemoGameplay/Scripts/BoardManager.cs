@@ -11,6 +11,8 @@ public struct MoveOptions
 public class BoardManager : MonoBehaviour
 {
     private GameObject[,] grid;
+
+    private bool gameOver = false;
     [SerializeField] private int gridSizeRows = 10;
     [SerializeField] private int gridSizeCols = 10;
 
@@ -112,26 +114,53 @@ public class BoardManager : MonoBehaviour
         {
             return result;
         } 
+        
+        var pieceObj = GetPieceAt(x, y);
+        if (pieceObj == null)
+        {
+            return result;
+        }
+        var piece = pieceObj.GetComponent<PieceController>();
+        if (piece == null)
+        {
+            return result;
+        }
+
+
+        int maxSteps;
+        if (piece.pieceClass == PieceClass.SCOUT)
+        {
+            maxSteps = Mathf.Max(gridSizeCols, gridSizeRows);
+        }
+        else
+        {
+            maxSteps = 1;
+        }
+
 
         foreach (var d in kFourDirs)
         {
-            int nx = x + d.x;
-            int ny = y + d.y;
-
-            if (!InBounds(nx, ny) || IsWall(nx, ny))
-                continue;
-
-            var occupant = grid[nx, ny];
-            if (occupant == null)
+            for (int step = 1; step <= maxSteps; step++)
             {
-                result.freeSquares.Add(new Vector2Int(nx, ny));
-            }
-            else
-            {
-                var otherPiece = occupant.GetComponent<PieceController>();
-                if (otherPiece != null && otherPiece.team != team)
+                int nx = x + d.x * step;
+                int ny = y + d.y * step;
+
+                if (!InBounds(nx, ny) || IsWall(nx, ny))
+                    break;
+
+                var occupant = grid[nx, ny];
+                if (occupant == null)
                 {
-                    result.enemySquares.Add(new Vector2Int(nx, ny));
+                    result.freeSquares.Add(new Vector2Int(nx, ny));
+                }
+                else
+                {
+                    var otherPiece = occupant.GetComponent<PieceController>();
+                    if (otherPiece != null && otherPiece.team != team)
+                    {
+                        result.enemySquares.Add(new Vector2Int(nx, ny));
+                    }
+                    break;
                 }
             }
         }
