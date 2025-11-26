@@ -118,7 +118,7 @@ public class BoardManager : MonoBehaviour
         return true;
     }
 
-    private void UpdatePieceVisibility()
+    public void UpdatePieceVisibility()
     {
         foreach (var pieceObj in grid)
         {
@@ -391,8 +391,13 @@ public class BoardManager : MonoBehaviour
             Debug.LogError($"RegisterPiece out of bounds: {x},{y}");
             return;
         }
+
         grid[x, y] = piece.gameObject;
+
+        // Ensure visibility is correct whenever a piece is placed/registered.
+        UpdatePieceVisibility();
     }
+
 
     private void ToggleTurnAfterAttack(Team attacker)
     {
