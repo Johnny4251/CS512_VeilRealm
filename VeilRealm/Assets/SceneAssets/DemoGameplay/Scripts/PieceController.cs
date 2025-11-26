@@ -215,13 +215,21 @@ public class PieceController : MonoBehaviour
     }
 
 
-    private void ClearHighlights()
+    public void ClearHighlights()
     {
         for (int i = 0; i < activeHighlights.Count; i++)
         {
             if (activeHighlights[i] != null) Destroy(activeHighlights[i]);
         }
         activeHighlights.Clear();
+    }
+
+    public void Init(BoardManager manager, Team newTeam, int gridX, int gridY)
+    {
+        boardManager = manager;
+        team = newTeam;
+        x = gridX;
+        y = gridY;
     }
 
     public void OnSpotlightClicked(Vector2Int target)

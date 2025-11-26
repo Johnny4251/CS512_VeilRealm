@@ -24,6 +24,9 @@ public class BoardManager : MonoBehaviour
     [SerializeField] private int gridSizeRows = 10;
     [SerializeField] private int gridSizeCols = 10;
 
+    public int GridRows => gridSizeRows;
+    public int GridCols => gridSizeCols;
+
 
     [SerializeField] public bool redMove = true;
     [SerializeField] public bool blueMove = false;
@@ -69,6 +72,11 @@ public class BoardManager : MonoBehaviour
     private HashSet<Vector2Int> wallSet;
 
     private PieceController selectedPiece;
+
+    public bool IsWallAt(int x, int y)
+    {
+        return wallSet.Contains(new Vector2Int(x, y));
+    }
 
     void Awake()
     {
