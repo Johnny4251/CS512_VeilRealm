@@ -1,6 +1,14 @@
 # CS512-VEILREALM
 CS512 SOFTWARE ENGINEERING PROJECT
 
+## Team Members
+John Pertell, Sam Grioli, Simon Liang, Jacob Cormier
+
+## Project Description
+A Stratego inspired game buit in Unity  
+Veilrealm is a turn based pass by play built on the concepts of stratego rules with a fantasy theme
+
+## Build and Run
 ### Instal Unity Hub
 1. Download unity from https://unity.com/download
 2. Run the installer
@@ -31,3 +39,8 @@ CS512 SOFTWARE ENGINEERING PROJECT
 ### Downloads
 [Linux/Debian](VEILREALM_DEBIAN.zip)  
 [Windows](VEILREALM_WINDOWS.zip)
+
+## Future Work
+Implement piece placement  
+Implement peer to peer multiplayer  
+UI adjustments
